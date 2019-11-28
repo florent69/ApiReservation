@@ -20,8 +20,9 @@ public class ReservationController {
     @Autowired
     private ReservationDao reservationDao;
 
+    //****************************** CRUD ***************************************************/
     @GetMapping(value = "/Reservation")
-    public List<Reservation> reservationList() {
+    public List<Reservation> reservationsList() {
         return reservationDao.findAll();
     }
 
@@ -62,11 +63,11 @@ public class ReservationController {
         reservationDao.delete(reservation);
     }
 
-    //************************ Methodes *********************/
+    //************************ Methods **************************************/
     // retourne toutes les réservations par rapport a un vehicle donné
     @GetMapping(value = "/Reservation/{idVehicle}")
     public List<Reservation> unavailableDateForOneCar(@PathVariable int idVehicle) {
-        List<Reservation> reservationsList = reservationList();
+        List<Reservation> reservationsList = reservationsList();
         List<Reservation> unavailabilityForOneCar = new ArrayList<>();
         for (Reservation x : reservationsList) {
             if (x.getIdVehicle() == idVehicle) {
@@ -79,13 +80,13 @@ public class ReservationController {
     // retourne tous les vehicles disponibles par rapport à des dates de début et de fin
     @PostMapping(value = "/Reservation/CarAvailable/{idClient}")
     public List<CarDto> availableCarsList(@RequestBody StartEndDatesDto startEndDatesDto, @PathVariable int idClient) {
-        //Récupère la liste de tous les véhicule
-        List<CarDto> allCars = ageFilter(idClient);
+        List<Reservation> allReservationsList = reservationsList();
+        List<CarDto> allCarsList = ageFilter(idClient);
         //---------------------------------------------//
         List<Integer> unavailableIdCarsList = new ArrayList<>();
-        List<CarDto> availableCars = new ArrayList<>();
-        List<Reservation> list = reservationList();
-        for (Reservation reservation : list) {
+        List<CarDto> availableCarsList = new ArrayList<>();
+
+        for (Reservation reservation : allReservationsList) {
             Date startDateInput = startEndDatesDto.getStartDate();
             Date endDateInput = startEndDatesDto.getEndDate();
             if (
@@ -99,14 +100,14 @@ public class ReservationController {
                 unavailableIdCarsList.add(reservation.getIdVehicle());
             }
         }
-        for (CarDto car : allCars) {
-            availableCars.add(car);
-            for (int unavailableCars : unavailableIdCarsList)
-                if (car.getId() == unavailableCars) {
-                    availableCars.remove(car);
+        for (CarDto car : allCarsList) {
+            availableCarsList.add(car);
+            for (int unavailableIdCar : unavailableIdCarsList)
+                if (car.getId() == unavailableIdCar) {
+                    availableCarsList.remove(car);
                 }
         }
-        return availableCars;
+        return availableCarsList;
     }
 
     // retourne un message "est ce que je peux louer ce vehicule a cette date"
@@ -124,6 +125,7 @@ public class ReservationController {
     }
 
     //Un conducteur de moins de 21 ans ne peut pas louer un véhicule possédant 8 chevaux fiscaux ou plus.
+    //Un conducteur de moins de 25 ans ne peut pas louer un véhicule possédant 13 chevaux fiscaux ou plus.
     @GetMapping(value = "/Reservation/AgeFilter/{idClient}")
     public List<CarDto> ageFilter(@PathVariable int idClient) {
         //Récupère la liste de tous les véhicules
@@ -137,7 +139,7 @@ public class ReservationController {
         Date today = new Date();
         Date birthDate = Client.getBirthDate();
         int age = getDiffYears(birthDate, today);
-//**********************************************************************************/
+    //**********************************************************************************/
         List<CarDto> carAvail = new ArrayList<>();
         carAvail.addAll(allCars);
         for (CarDto car : allCars) {
